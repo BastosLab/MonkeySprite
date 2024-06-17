@@ -28,12 +28,13 @@ def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
             video_sprites = list(np.random.randint(0, n_sprites, size=1))
         videos.append(simulator.sim_video(sprites[video_sprites]))
         for k in sprites_attr:
-            labels[k].append(sprites_attr[k][video_sprites])
+            label = sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
+            labels[k].append(label)
         sprite_types.append(video_sprites)
         progress_bar.update()
     progress_bar.close()
 
-    return np.stack(videos, axis=0), [sprites_count] * n, labels
+    return np.stack(videos, axis=0), sprite_types, labels
 
 def generate_multiobject_dataset(n, shape, sprites, sprites_attr, count_distrib,
                                  allow_overlap=False):
