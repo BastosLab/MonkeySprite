@@ -1,12 +1,13 @@
 import numpy as np
 import torch
 from torch.distributions.uniform import Uniform
-from torch.nn.functional import affine_grid, grid_sample
+from torch.nn.functional import affine_grid, grid_sample, normalize
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
 
 class SimSpritesVideo:
-    def __init__(self, timesteps, frame_size, delta_t):
+    def __init__(self, timesteps, frame_size, delta_t, attractor=None):
+        self.attractor = torch.tensor(attractor) if attractor is not None else None
         self.timesteps = timesteps
         self.frame_size = frame_size
         self.delta_t = delta_t
@@ -48,11 +49,13 @@ class SimSpritesVideo:
 
     def sim_trajectory(self, init_xs):
         ''' Generate a random sequence of a sprite '''
-        v_norm = Uniform(0, 1).sample() * 2 * math.pi
-        #v_norm = torch.ones(1) * 2 * math.pi
-        v_y = torch.sin(v_norm).item()
-        v_x = torch.cos(v_norm).item()
-        V0 = torch.Tensor([v_x, v_y])
+        if self.attractor is None:
+            v_norm = Uniform(0, 1).sample() * 2 * math.pi
+            v_y = torch.sin(v_norm).item()
+            v_x = torch.cos(v_norm).item()
+            V0 = torch.Tensor([v_x, v_y])
+        else:
+            V0 = normalize(self.attractor - init_xs, dim=0)
         X = torch.zeros((self.timesteps, 2))
         V = torch.zeros((self.timesteps, 2))
         X[0] = init_xs
