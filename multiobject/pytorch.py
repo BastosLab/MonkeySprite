@@ -19,15 +19,15 @@ class SimSpritesVideo:
         Get random trajectories for the digits and generate a video.
         '''
         sprite_shape = np.array(sprites.shape[1:3])
-        s_factors = self.frame_sizes / sprite_shape
+        s_factor = self.frame_sizes[0] / sprite_shape[0]
         t_factors = (self.frame_sizes - sprite_shape) / sprite_shape
         t_factors = t_factors.astype('float32')
         sprite_vids = []
         Xs, Vs = self.sim_trajectories(num_tjs=len(sprites))
         for k in range(len(sprites)):
             obj_image = torch.from_numpy(sprites[k]).float().unsqueeze(dim=0)
-            scaling = torch.Tensor([[s_factors[0], 0],
-                                    [0, s_factors[1]]])
+            scaling = torch.Tensor([[s_factor, 0],
+                                    [0, s_factor]])
 
             video = []
             for t in range(self.timesteps):
@@ -43,7 +43,7 @@ class SimSpritesVideo:
                 video.append(frame.transpose(1, -1))
             video = torch.cat(video, dim=0)
             sprite_vids.append(video)
-        return torch.stack(sprite_vids, dim=0).sum(0).clamp(min=0, max=255).numpy()
+        return torch.stack(sprite_vids, dim=0).sum(0).clamp(min=0, max=255).numpy().astype('uint8')
 
     def sim_trajectories(self, num_tjs):
         Xs = []
