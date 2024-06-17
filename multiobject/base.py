@@ -19,7 +19,7 @@ def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
     progress_bar = tqdm(total=n)
     for i in range(n):
         video_sprites = np.random.randint(0, n_sprites, size=sprites_count)
-        videos.append(simulator(sprites[video_sprites]))
+        videos.append(simulator.sim_video(sprites[video_sprites]))
         for k in sprites_attr:
             labels[k].append(sprites_attr[k][video_sprites])
         progress_bar.update()
