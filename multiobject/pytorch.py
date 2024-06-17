@@ -1,8 +1,94 @@
+import math
 import numpy as np
 import torch
+from torch.distributions.uniform import Uniform
+from torch.nn.functional import affine_grid, grid_sample, normalize
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
 
+class SimSpritesVideo:
+    def __init__(self, timesteps, frame_sizes, delta_t, attractor=None):
+        self.attractor = torch.tensor(attractor) if attractor is not None else None
+        self.timesteps = timesteps
+        self.frame_sizes = np.array(frame_sizes)
+        self.delta_t = delta_t
+
+    @torch.no_grad()
+    def sim_video(self, sprites):
+        '''
+        Get random trajectories for the digits and generate a video.
+        '''
+        sprite_shape = np.array(sprites.shape[1:3])
+        s_factor = self.frame_sizes[0] / sprite_shape[0]
+        t_factors = (self.frame_sizes - sprite_shape) / sprite_shape
+        t_factors = t_factors.astype('float32')
+        sprite_vids = []
+        Xs, Vs = self.sim_trajectories(num_tjs=len(sprites))
+        for k in range(len(sprites)):
+            obj_image = torch.from_numpy(sprites[k]).float().unsqueeze(dim=0)
+            scaling = torch.Tensor([[s_factor, 0],
+                                    [0, s_factor]])
+
+            video = []
+            for t in range(self.timesteps):
+                thetas = torch.cat((scaling,
+                                    (Xs[k, t] * t_factors).unsqueeze(dim=-1)),
+                                   dim=-1).unsqueeze(dim=0)
+                grid = affine_grid(thetas, torch.Size((1, 3,
+                                                       self.frame_sizes[0],
+                                                       self.frame_sizes[1])),
+                                   align_corners=True)
+                frame = grid_sample(obj_image.transpose(1, -1), grid,
+                                    mode='nearest', align_corners=True)
+                video.append(frame.transpose(1, -1))
+            video = torch.cat(video, dim=0)
+            sprite_vids.append(video)
+        return torch.stack(sprite_vids, dim=0).sum(0).clamp(min=0, max=255).numpy().astype('uint8')
+
+    def sim_trajectories(self, num_tjs):
+        Xs = []
+        Vs = []
+        x0 = Uniform(-1, 1).sample((num_tjs, 2))
+        for i in range(num_tjs):
+            x, v = self.sim_trajectory(init_xs=x0[i])
+            Xs.append(x.unsqueeze(0))
+            Vs.append(v.unsqueeze(0))
+        return torch.cat(Xs, 0), torch.cat(Vs, 0)
+
+    def sim_trajectory(self, init_xs):
+        ''' Generate a random sequence of a sprite '''
+        if self.attractor is None:
+            v_norm = Uniform(0, 1).sample() * 2 * math.pi
+            v_y = torch.sin(v_norm).item()
+            v_x = torch.cos(v_norm).item()
+            V0 = torch.Tensor([v_x, v_y])
+        else:
+            if len(self.attractor) > 2:
+                attractor = np.random.choice(self.attractor)
+            V0 = normalize(self.attractor - init_xs, dim=0)
+        X = torch.zeros((self.timesteps, 2))
+        V = torch.zeros((self.timesteps, 2))
+        X[0] = init_xs
+        V[0] = V0
+        for t in range(0, self.timesteps -1):
+            X_new = X[t] + V[t] * self.delta_t
+            V_new = V[t]
+
+            if X_new[0] < -1.0:
+                X_new[0] = -1.0 + torch.abs(-1.0 - X_new[0])
+                V_new[0] = - V_new[0]
+            if X_new[0] > 1.0:
+                X_new[0] = 1.0 - torch.abs(X_new[0] - 1.0)
+                V_new[0] = - V_new[0]
+            if X_new[1] < -1.0:
+                X_new[1] = -1.0 + torch.abs(-1.0 - X_new[1])
+                V_new[1] = - V_new[1]
+            if X_new[1] > 1.0:
+                X_new[1] = 1.0 - torch.abs(X_new[1] - 1.0)
+                V_new[1] = - V_new[1]
+            V[t+1] = V_new
+            X[t+1] = X_new
+        return X, V
 
 class MultiObjectDataLoader(DataLoader):
 

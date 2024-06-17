@@ -1,2 +1,3 @@
 from .dsprites_binary_color import generate_dsprites
 from .mnist_binary import generate_binary_mnist
+from .simiansprite import generate_simiansprites
