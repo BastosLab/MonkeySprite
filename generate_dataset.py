@@ -85,8 +85,8 @@ def generate_images(dataset_type, n=100000, frame_size=(64, 64), patch_size=18,
     plt.savefig('gen_{}_distribution.png'.format(get_date_str()))
 
 def generate_videos(dataset_type, n=100000, frame_size=(64, 64), patch_size=18,
-                    timesteps=10, delta_t=0.3, count_distrib={0: 1/3, 1: 1/3,
-                    2: 1/3}, allow_overlap=True):
+                    timesteps=10, delta_t=0.3, attractor=None,
+                    count_distrib={0: 1/3, 1: 1/3, 2: 1/3}, allow_overlap=True):
     # Generate sprites and labels
     print("generating sprites...")
     if dataset_type == 'dsprites':
