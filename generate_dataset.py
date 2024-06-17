@@ -4,11 +4,11 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from multiobject import generate_multiobject_dataset
-from sprites import generate_dsprites, generate_binary_mnist
+from multiobject import generate_multiobject_dataset, generate_video_dataset
+from sprites import generate_dsprites, generate_binary_mnist, generate_simiansprites
 from utils import get_date_str, show_img_grid
 
-supported_sprites = ['dsprites', 'binary_mnist']
+supported_sprites = ['dsprites', 'binary_mnist', 'simiansprites']
 
 def main():
 
