@@ -1,3 +1,4 @@
+import collections
 import numpy as np
 from tqdm import tqdm
 
@@ -12,16 +13,22 @@ def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
     print("num sprites: {}".format(n_sprites))
 
     # Generated videos
-    videos, labels = [], {k: [] for k in sprites_attr}
+    videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
 
     simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t,
                                 attractor=attractor)
     progress_bar = tqdm(total=n)
     for i in range(n):
-        video_sprites = np.random.randint(0, n_sprites, size=sprites_count)
+        if isinstance(sprites_count, collections.Counter):
+            k, v = sprites_count.most_common(1)
+            sprites_count[k] -= 1
+            video_sprites = [v]
+        else:
+            video_sprites = list(np.random.randint(0, n_sprites, size=1))
         videos.append(simulator.sim_video(sprites[video_sprites]))
         for k in sprites_attr:
             labels[k].append(sprites_attr[k][video_sprites])
+        sprite_types.append(video_sprites)
         progress_bar.update()
     progress_bar.close()
 
