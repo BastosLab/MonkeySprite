@@ -15,16 +15,20 @@ def main():
     args = parse_args()
 
     ### SETTINGS #############################
-    n = 100000   # num images
-    frame_size = (64, 64)
-    patch_size = 18
+    n = args.n   # num images
+    frame_size = (args.frame_size, args.frame_size)
+    patch_size = args.patch_size
 
     # count_distrib = {1: 1}
     count_distrib = {0: 1/3, 1: 1/3, 2: 1/3}
     allow_overlap = True
 
-    generate_images(args.dataset_type, n, frame_size, patch_size, count_distrib,
-                    allow_overlap)
+    if args.video:
+        generate_videos(args.dataset_type, n, frame_size, patch_size,
+                        timesteps=args.timesteps, delta_t=args.delta_t)
+    else:
+        generate_images(args.dataset_type, n, frame_size, patch_size,
+                        count_distrib, allow_overlap)
 
 def generate_images(dataset_type, n=100000, frame_size=(64, 64), patch_size=18,
                     count_distrib={0: 1/3, 1: 1/3, 2: 1/3}, allow_overlap=True):
@@ -126,6 +130,18 @@ def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         allow_abbrev=False)
+    parser.add_argument('-n', type=int, default=100000, dest='n',
+                        help='Number of data samples')
+    parser.add_argument('--frame-size', type=int, default=64, dest='frame_size',
+                        help='Size of image side in pixels')
+    parser.add_argument('--patch-size', type=int, default=18, dest='patch_size',
+                        help='Size of sprite side in pixels')
+    parser.add_argument('--video', type=bool, default=False, metavar='VID',
+                        dest='videos', help="Generate videos")
+    parser.add_argument('--timesteps', type=int, default=10, dest='timesteps',
+                        help='Timesteps for video generation')
+    parser.add_argument('--delta-t', type=float, default=0.3, dest='delta_t',
+                        help='Sprite velocity for video generation')
     parser.add_argument('--type',
                         type=str,
                         default='dsprites',
