@@ -22,14 +22,20 @@ def main():
     # count_distrib = {1: 1}
     count_distrib = {0: 1/3, 1: 1/3, 2: 1/3}
     allow_overlap = True
+
+    generate_images(args.dataset_type, n, frame_size, patch_size, count_distrib,
+                    allow_overlap)
+
+def generate_images(dataset_type, n=100000, frame_size=(64, 64), patch_size=18,
+                    count_distrib={0: 1/3, 1: 1/3, 2: 1/3}, allow_overlap=True):
     ##########################################
 
 
     # Generate sprites and labels
     print("generating sprites...")
-    if args.dataset_type == 'dsprites':
+    if dataset_type == 'dsprites':
         sprites, labels = generate_dsprites(patch_size)
-    elif args.dataset_type == 'binary_mnist':
+    elif dataset_type == 'binary_mnist':
         sprites, labels = generate_binary_mnist(patch_size)
     else:
         raise NotImplementedError
@@ -54,10 +60,10 @@ def main():
 
     # Save dataset
     print("saving...")
-    root = os.path.join('generated', args.dataset_type)
+    root = os.path.join('generated', dataset_type)
     os.makedirs(root, exist_ok=True)
     file_str = get_date_str()
-    fname = 'multi_' + args.dataset_type + '_' + file_str
+    fname = 'multi_' + dataset_type + '_' + file_str
     fname = os.path.join(root, fname)
     np.savez_compressed(fname, x=dataset, labels=labels)
     print('done')
