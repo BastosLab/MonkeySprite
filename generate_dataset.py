@@ -107,8 +107,8 @@ def generate_videos(dataset_type, n=100000, frame_size=(64, 64), patch_size=18,
     ch = sprites[0].shape[-1]
     img_shape = (*frame_size, ch)
     dataset, n_obj, labels = generate_video_dataset(n, img_shape, sprites,
-                                                    labels,
-                                                    count_distrib=count_distrib,
+                                                    labels, count_distrib,
+                                                    timesteps, delta_t,
                                                     allow_overlap=allow_overlap)
     print("done")
     print("shape:", dataset.shape)
