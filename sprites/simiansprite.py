@@ -12,7 +12,7 @@ def generate_simiansprites(patch_size, anti_aliasing=True):
     for path in simian_files:
         fruit = path.split('_')[0]
         path = os.path.join('_data', 'simiansprite', path)
-        img = cv.imread(path)
+        img = cv.cvtColor(cv.imread(path), cv.COLOR_BGR2RGB)
         assert img.shape == (280, 280, 3)
 
         # Normalize
