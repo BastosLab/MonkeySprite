@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import torch
 from torch.distributions.uniform import Uniform
@@ -6,36 +7,43 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
 
 class SimSpritesVideo:
-    def __init__(self, timesteps, frame_size, delta_t, attractor=None):
+    def __init__(self, timesteps, frame_sizes, delta_t, attractor=None):
         self.attractor = torch.tensor(attractor) if attractor is not None else None
         self.timesteps = timesteps
-        self.frame_size = frame_size
+        self.frame_sizes = np.array(frame_sizes)
         self.delta_t = delta_t
 
+    @torch.no_grad()
     def sim_video(self, sprites):
         '''
         Get random trajectories for the digits and generate a video.
         '''
-        s_factor = self.frame_size / sprites.shape[1]
-        t_factor = (self.frame_size - sprites.shape[1]) / sprites.shape[1]
-        video = []
+        sprite_shape = np.array(sprites.shape[1:3])
+        s_factors = self.frame_sizes / sprite_shape
+        t_factors = (self.frame_sizes - sprite_shape) / sprite_shape
+        t_factors = t_factors.astype('float32')
+        sprite_vids = []
         Xs, Vs = self.sim_trajectories(num_tjs=len(sprites))
         for k in range(len(sprites)):
-            obj_image = torch.from_numpy(sprites[k]).float()
+            obj_image = torch.from_numpy(sprites[k]).float().unsqueeze(dim=0)
+            scaling = torch.Tensor([[s_factors[0], 0],
+                                    [0, s_factors[1]]])
 
-            scaling = torch.Tensor([[s_factor, 0], [0, s_factor]]).repeat(
-                self.timesteps, 1, 1
-            )
-            thetas = torch.cat((S, Xs[k].unsqueeze(-1) * t_factor), -1)
-            grid = affine_grid(thetas, torch.Size((self.timesteps, 1,
-                                                   self.frame_size,
-                                                   self.frame_size)),
-                               align_corners=True)
-            video.append(
-                grid_sample(obj_image.repeat(self.timesteps, 1, 1).unsqueeze(1),
-                            grid, mode='nearest', align_corners=True)
-            )
-        return torch.cat(video, 1).sum(1).clamp(min=0, max=255).numpy()
+            video = []
+            for t in range(self.timesteps):
+                thetas = torch.cat((scaling,
+                                    (Xs[k, t] * t_factors).unsqueeze(dim=-1)),
+                                   dim=-1).unsqueeze(dim=0)
+                grid = affine_grid(thetas, torch.Size((1, 3,
+                                                       self.frame_sizes[0],
+                                                       self.frame_sizes[1])),
+                                   align_corners=True)
+                frame = grid_sample(obj_image.transpose(1, -1), grid,
+                                    mode='nearest', align_corners=True)
+                video.append(frame.transpose(1, -1))
+            video = torch.cat(video, dim=0)
+            sprite_vids.append(video)
+        return torch.stack(sprite_vids, dim=0).sum(0).clamp(min=0, max=255).numpy()
 
     def sim_trajectories(self, num_tjs):
         Xs = []
