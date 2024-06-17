@@ -21,7 +21,7 @@ class SimSpritesVideo:
         video = []
         Xs, Vs = self.sim_trajectories(num_tjs=len(sprites))
         for k in range(len(sprites)):
-            obj_image = torch.from_numpy(sprites[sprite_index[k]]).float()
+            obj_image = torch.from_numpy(sprites[k]).float()
 
             scaling = torch.Tensor([[s_factor, 0], [0, s_factor]]).repeat(
                 self.timesteps, 1, 1
