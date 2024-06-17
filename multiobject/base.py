@@ -4,6 +4,36 @@ from tqdm import tqdm
 
 from .pytorch import SimSpritesVideo
 
+def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
+                          timesteps, delta_t, allow_overlap=True,
+                          attractor=None):
+    assert len(shape) == 3, "the image shape should be (height, width, channels)"
+    bgr = np.zeros(shape, dtype='int')
+    color_channels = shape[-1]
+    n_sprites = len(sprites)
+    print("num sprites: {}".format(n_sprites))
+
+    # Generated videos
+    videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
+
+    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t,
+                                attractor=attractor)
+    progress_bar = tqdm(total=n)
+    for i in range(n):
+        if isinstance(sprites_count, collections.Counter):
+            k, v = sprites_count.most_common(1)
+            sprites_count[k] -= 1
+            video_sprites = [v]
+        else:
+            video_sprites = list(np.random.randint(0, n_sprites, size=1))
+        video = simulator.sim_video(sprites[video_sprites])
+        vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
+                     for k in sprites_attr}
+        yield video, video_sprites, vidlabels
+        progress_bar.update()
+    progress_bar.close()
+
+
 def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
                            timesteps, delta_t, allow_overlap=True,
                            attractor=None):
