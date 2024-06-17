@@ -89,6 +89,8 @@ def generate_videos(dataset_type, n=100000, frame_size=(64, 64), patch_size=18,
         sprites, labels = generate_dsprites(patch_size)
     elif dataset_type == 'binary_mnist':
         sprites, labels = generate_binary_mnist(patch_size)
+    elif dataset_type == 'simiamsprites':
+        sprites, labels = generate_simiansprites(patch_size)
     else:
         raise NotImplementedError
 
