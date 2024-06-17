@@ -5,7 +5,8 @@ from tqdm import tqdm
 from .pytorch import SimSpritesVideo
 
 def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
-                           delta_t, allow_overlap=True, attractor=None):
+                           timesteps, delta_t, allow_overlap=True,
+                           attractor=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     bgr = np.zeros(shape, dtype='int')
     color_channels = shape[-1]
