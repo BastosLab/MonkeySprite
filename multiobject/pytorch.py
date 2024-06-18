@@ -63,9 +63,10 @@ class SimSpritesVideo:
             v_x = torch.cos(v_norm).item()
             V0 = torch.Tensor([v_x, v_y])
         else:
-            if len(self.attractor) > 2:
-                attractor = np.random.choice(self.attractor)
-            V0 = normalize(self.attractor - init_xs, dim=0)
+            if len(self.attractor) >= 2:
+                a = torch.randint(0, len(self.attractor), size=(1,))
+                attractor = self.attractor[a, :].squeeze()
+            V0 = normalize(attractor - init_xs, dim=0)
         X = torch.zeros((self.timesteps, 2))
         V = torch.zeros((self.timesteps, 2))
         X[0] = init_xs
