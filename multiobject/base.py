@@ -21,9 +21,9 @@ def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
     progress_bar = tqdm(total=n)
     for i in range(n):
         if isinstance(sprites_count, collections.Counter):
-            k, v = sprites_count.most_common(1)
+            k, _ = sprites_count.most_common(1)[0]
             sprites_count[k] -= 1
-            video_sprites = [v]
+            video_sprites = [list(sprites_count.keys()).index(k)]
         else:
             video_sprites = list(np.random.randint(0, n_sprites, size=1))
         video = simulator.sim_video(sprites[video_sprites])
