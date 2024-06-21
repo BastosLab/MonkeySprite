@@ -9,6 +9,14 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
 
 class SpritesVideo(torch.nn.Module):
+    DISTANCE_TO_SCREEN = 106
+    SCREEN_DIMS = (100, 62)
+    SCREEN_HALFWIDTH_DEGREES = np.degrees(np.arctan(
+        SCREEN_DIMS[0] / 2 / DISTANCE_TO_SCREEN
+    )).astype("float32")
+    SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
+        SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
+    )).astype("float32")
     def __init__(self, frame_size, sprites, vs, xs, attractor=None):
         super().__init__()
 
@@ -24,6 +32,13 @@ class SpritesVideo(torch.nn.Module):
         self.frame_size = frame_size
         self.register_buffer('sprites',
                              torch.from_numpy(sprites.astype('float32')))
+
+    @property
+    def egocentric(self):
+        dims = torch.tensor([SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
+                             SpritesVideo.SCREEN_HALFHEIGHT_DEGREES])
+        dims = dims.expand(1, 1, 2)
+        return (self.xs * 2 * dims, self.vs * 2 * dims)
 
     @property
     def num_sprites(self):
