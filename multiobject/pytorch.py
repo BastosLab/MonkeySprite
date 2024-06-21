@@ -10,7 +10,7 @@ class SimSpritesVideo:
     def __init__(self, timesteps, frame_sizes, delta_t, attractor=None):
         self.attractor = torch.tensor(attractor) if attractor is not None else None
         self.timesteps = timesteps
-        self.frame_sizes = np.array(frame_sizes)
+        self.frame_sizes = torch.tensor(frame_sizes)
         self.delta_t = delta_t
 
     @torch.no_grad()
@@ -18,16 +18,15 @@ class SimSpritesVideo:
         '''
         Get random trajectories for the digits and generate a video.
         '''
-        sprite_shape = np.array(sprites.shape[1:3])
-        s_factor = self.frame_sizes[0] / sprite_shape[0]
-        t_factors = (self.frame_sizes - sprite_shape) / sprite_shape
-        t_factors = t_factors.astype('float32')
+        sprite_shape = torch.tensor(sprites.shape[1:3])
+        s_factors = self.frame_sizes / sprite_shape
+        t_factors = -(self.frame_sizes - sprite_shape) / sprite_shape
+        t_factors[1] *= -1
         sprite_vids = []
         Xs, Vs = self.sim_trajectories(num_tjs=len(sprites))
         for k in range(len(sprites)):
             obj_image = torch.from_numpy(sprites[k]).float().unsqueeze(dim=0)
-            scaling = torch.Tensor([[s_factor, 0],
-                                    [0, s_factor]])
+            scaling = torch.eye(2) * s_factors
 
             video = []
             for t in range(self.timesteps):
@@ -35,12 +34,14 @@ class SimSpritesVideo:
                                     (Xs[k, t] * t_factors).unsqueeze(dim=-1)),
                                    dim=-1).unsqueeze(dim=0)
                 grid = affine_grid(thetas, torch.Size((1, 3,
-                                                       self.frame_sizes[0],
-                                                       self.frame_sizes[1])),
-                                   align_corners=True)
-                frame = grid_sample(obj_image.transpose(1, -1), grid,
-                                    mode='nearest', align_corners=True)
-                video.append(frame.transpose(1, -1))
+                                                       self.frame_sizes[1],
+                                                       self.frame_sizes[0])),
+                                   align_corners=False)
+                src = obj_image.transpose(1, -1).transpose(-1, -2)
+                frame = grid_sample(src, grid, mode='nearest',
+                                    align_corners=False)
+                frame = frame.transpose(-1, -2).transpose(1, -1)
+                video.append(frame)
             video = torch.cat(video, dim=0)
             sprite_vids.append(video)
         return torch.stack(sprite_vids, dim=0).sum(0).clamp(min=0, max=255).numpy().astype('uint8')
