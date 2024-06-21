@@ -96,33 +96,9 @@ class SimSpritesVideo:
         '''
         Get random trajectories for the digits and generate a video.
         '''
-        sprite_shape = torch.tensor(sprites.shape[1:3])
-        s_factors = self.frame_sizes / sprite_shape
-        t_factors = -(self.frame_sizes - sprite_shape) / sprite_shape
-        t_factors[1] *= -1
-        sprite_vids = []
-        Xs, Vs = self.sim_trajectories(num_tjs=len(sprites))
-        for k in range(len(sprites)):
-            obj_image = torch.from_numpy(sprites[k]).float().unsqueeze(dim=0)
-            scaling = torch.eye(2) * s_factors
-
-            video = []
-            for t in range(self.timesteps):
-                thetas = torch.cat((scaling,
-                                    (Xs[k, t] * t_factors).unsqueeze(dim=-1)),
-                                   dim=-1).unsqueeze(dim=0)
-                grid = affine_grid(thetas, torch.Size((1, 3,
-                                                       self.frame_sizes[1],
-                                                       self.frame_sizes[0])),
-                                   align_corners=False)
-                src = obj_image.transpose(1, -1).transpose(-1, -2)
-                frame = grid_sample(src, grid, mode='nearest',
-                                    align_corners=False)
-                frame = frame.transpose(-1, -2).transpose(1, -1)
-                video.append(frame)
-            video = torch.cat(video, dim=0)
-            sprite_vids.append(video)
-        return torch.stack(sprite_vids, dim=0).sum(0).clamp(min=0, max=255).numpy().astype('uint8')
+        xs, vs = self.sim_trajectories(num_tjs=len(sprites))
+        return SpritesVideo(torch.Size(self.frame_sizes), sprites, vs, xs,
+                            attractor=self.attractor)
 
     def sim_trajectories(self, num_tjs):
         Xs = []
