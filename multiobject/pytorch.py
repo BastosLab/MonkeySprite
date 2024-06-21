@@ -1,3 +1,5 @@
+import cv2 as cv
+import functools
 import math
 import numpy as np
 import torch
@@ -5,6 +7,82 @@ from torch.distributions.uniform import Uniform
 from torch.nn.functional import affine_grid, grid_sample, normalize
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
+
+class SpritesVideo(torch.nn.Module):
+    def __init__(self, frame_size, sprites, vs, xs, attractor=None):
+        super().__init__()
+
+        assert xs.shape[1:] == vs.shape[1:]
+        self.register_buffer('xs', xs)
+        self.register_buffer('vs', vs)
+
+        if attractor is None:
+            attractor = (torch.nan, torch.nan)
+        self.register_buffer('attractor', torch.tensor(attractor))
+
+        assert sprites.shape[0] == self.num_sprites
+        self.frame_size = frame_size
+        self.register_buffer('sprites',
+                             torch.from_numpy(sprites.astype('float32')))
+
+    @property
+    def num_sprites(self):
+        return self.xs.shape[0]
+
+    def render(self):
+        video = []
+        for t in range(self.timesteps):
+            video.append(self.render_frame(t))
+        return torch.stack(video, dim=0).clamp(min=0, max=255).to(torch.uint8)
+
+    def render_frame(self, t):
+        scaling = self.scaling().unsqueeze(dim=0)
+        translation = self.translation()
+
+        translation = (self.xs[:, t] * translation).unsqueeze(dim=-1)
+        transforms = torch.cat((scaling, translation), dim=-1)
+
+        grids = affine_grid(transforms, torch.Size((len(self.sprites),
+                                                    self.sprites.shape[-1],
+                                                    self.frame_size[1],
+                                                    self.frame_size[0])),
+                            align_corners=False)
+        src = self.sprites.movedim(-1, 1)
+        dest = grid_sample(src, grids, mode='nearest', align_corners=False)
+        frame = dest.transpose(-1, -2).movedim(1, -1)
+        return frame.sum(dim=0)
+
+    @functools.cache
+    def scaling(self):
+        return torch.eye(2) * torch.tensor(self.frame_size) /\
+               torch.tensor(self.sprite_shape)
+
+    @property
+    def sprite_shape(self):
+        return self.sprites.shape[1:3]
+
+    @property
+    def timesteps(self):
+        return self.xs.shape[1]
+
+    @functools.cache
+    def translation(self):
+        frame_size = torch.tensor(self.frame_size)
+        sprite_shape = torch.tensor(self.sprite_shape)
+        translation = -(frame_size - sprite_shape) / sprite_shape
+        translation[1] *= -1
+        return translation
+
+    def write(self, fps, path):
+        frames = self.render()
+        writer = cv.VideoWriter(path + '.mp4', cv.VideoWriter_fourcc(*"mp4v"),
+                                fps, tuple(self.frame_size), True)
+        for t in range(frames.shape[0]):
+            frame = cv.cvtColor(frames[t].transpose(0, 1).numpy(),
+                                cv.COLOR_RGB2BGR)
+            writer.write(frame)
+        writer.release()
+        torch.save(self, path + '.pt')
 
 class SimSpritesVideo:
     def __init__(self, timesteps, frame_sizes, delta_t, attractor=None):
