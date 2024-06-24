@@ -5,8 +5,7 @@ from tqdm import tqdm
 from .pytorch import SimSpritesVideo
 
 def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
-                          timesteps, delta_t, allow_overlap=True,
-                          attractor=None):
+                          timesteps, delta_t, allow_overlap=True, rfs=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     bgr = np.zeros(shape, dtype='int')
     color_channels = shape[-1]
@@ -16,8 +15,7 @@ def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
 
-    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t,
-                                attractor=attractor)
+    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t, rfs=rfs)
     progress_bar = tqdm(total=n)
     for i in range(n):
         if isinstance(sprites_count, collections.Counter):
@@ -35,8 +33,7 @@ def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
 
 
 def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
-                           timesteps, delta_t, allow_overlap=True,
-                           attractor=None):
+                           timesteps, delta_t, allow_overlap=True, rfs=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     bgr = np.zeros(shape, dtype='int')
     color_channels = shape[-1]
@@ -46,8 +43,7 @@ def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
 
-    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t,
-                                attractor=attractor)
+    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t, rfs=rfs)
     progress_bar = tqdm(total=n)
     for i in range(n):
         if isinstance(sprites_count, collections.Counter):
