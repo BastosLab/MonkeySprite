@@ -77,10 +77,13 @@ class SpritesVideo(torch.nn.Module):
                 frame = np.where(mask > 0, frame, mask + c)
             return frame
 
-    def render(self):
+    def render(self, punchout=None):
         video = []
         for t in range(self.timesteps):
-            video.append(self.render_frame(t))
+            frame = self.render_frame(t)
+            if punchout is not None:
+                frame = self.punch_frame(frame, punchout)
+            video.append(frame)
         return torch.stack(video, dim=0).clamp(min=0, max=255).to(torch.uint8)
 
     def render_frame(self, t):
