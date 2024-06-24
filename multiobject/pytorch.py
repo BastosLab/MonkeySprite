@@ -17,6 +17,7 @@ class SpritesVideo(torch.nn.Module):
     SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
         SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
     )).astype("float32")
+    SCREEN_RESOLUTION = (1920, 1080)
 
     def __init__(self, frame_size, sprites, vs, xs, rfs=None):
         super().__init__()
@@ -34,12 +35,22 @@ class SpritesVideo(torch.nn.Module):
         self.register_buffer('sprites',
                              torch.from_numpy(sprites.astype('float32')))
 
+    @staticmethod
+    def degrees_to_coords(x, y):
+        return (x / SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
+                y / SpritesVideo.SCREEN_HALFHEIGHT_DEGREES)
+
     @property
     def egocentric(self):
         dims = torch.tensor([SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
                              SpritesVideo.SCREEN_HALFHEIGHT_DEGREES])
         dims = dims.expand(1, 1, 2)
         return (self.xs * 2 * dims, self.vs * 2 * dims)
+
+    @staticmethod
+    def coords_to_pixels(x, y):
+        return (x * (SpritesVideo.SCREEN_RES[0] / 2),
+                y * (SpritesVideo.SCREEN_RES[1] / 2))
 
     @property
     def num_sprites(self):
