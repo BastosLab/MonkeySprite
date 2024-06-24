@@ -101,8 +101,8 @@ class SpritesVideo(torch.nn.Module):
         torch.save(self, path + '.pt')
 
 class SimSpritesVideo:
-    def __init__(self, timesteps, frame_sizes, delta_t, attractor=None):
-        self.attractor = torch.tensor(attractor) if attractor is not None else None
+    def __init__(self, timesteps, frame_sizes, delta_t, rfs=None):
+        self.rfs = torch.tensor(rfs) if rfs is not None else None
         self.timesteps = timesteps
         self.frame_sizes = torch.tensor(frame_sizes)
         self.delta_t = delta_t
@@ -114,7 +114,7 @@ class SimSpritesVideo:
         '''
         xs, vs = self.sim_trajectories(num_tjs=len(sprites))
         return SpritesVideo(torch.Size(self.frame_sizes), sprites, vs, xs,
-                            attractor=self.attractor)
+                            rfs=self.rfs)
 
     def sim_trajectories(self, num_tjs):
         Xs = []
@@ -128,15 +128,15 @@ class SimSpritesVideo:
 
     def sim_trajectory(self, init_xs):
         ''' Generate a random sequence of a sprite '''
-        if self.attractor is None:
+        if self.rfs is None:
             v_norm = Uniform(0, 1).sample() * 2 * math.pi
             v_y = torch.sin(v_norm).item()
             v_x = torch.cos(v_norm).item()
             V0 = torch.Tensor([v_x, v_y])
         else:
-            if len(self.attractor) >= 2:
-                a = torch.randint(0, len(self.attractor), size=(1,))
-                attractor = self.attractor[a, :].squeeze()
+            if len(self.rfs) >= 2:
+                a = torch.randint(0, len(self.rfs), size=(1,))
+                attractor = self.rfs[a, :2].squeeze()
             V0 = normalize(attractor - init_xs, dim=0)
         X = torch.zeros((self.timesteps, 2))
         V = torch.zeros((self.timesteps, 2))
