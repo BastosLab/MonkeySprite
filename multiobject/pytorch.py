@@ -58,20 +58,20 @@ class SpritesVideo(torch.nn.Module):
     def num_sprites(self):
         return self.xs.shape[0]
 
-    def punch_frame(frame, punchout=True):
+    def punch_frame(self, frame, punchout=True):
         frame = frame.numpy()
 
         for (x, y, rx, ry, theta) in self.rfs:
             x, y = SpritesVideo.coords_to_pixels(x, y)
-            x = round(SpritesVideo.SCREEN_RES[0] / 2 + x)
-            y = round(SpritesVideo.SCREEN_RES[1] / 2 - y)
+            x = int(torch.round(SpritesVideo.SCREEN_RES[0] / 2 + x))
+            y = int(torch.round(SpritesVideo.SCREEN_RES[1] / 2 - y))
             rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
-            rx, ry = round(rx), round(ry)
+            rx, ry = int(torch.round(rx)), int(torch.round(ry))
             c = SpritesVideo.PUNCH_OUT_COLOR
 
             mask = np.zeros(frame.shape, np.uint8)
-            mask = cv.ellipse(mask, (x, y), (rx, ry), theta, 0, 360, (c, c, c),
-                              -1)
+            mask = cv.ellipse(mask, (x, y), (rx, ry), theta.item(), 0, 360,
+                              (c, c, c), -1)
             if punchout:
                 frame = np.where(mask > 0, mask, frame)
             else:
