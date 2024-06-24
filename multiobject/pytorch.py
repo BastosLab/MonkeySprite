@@ -19,7 +19,7 @@ class SpritesVideo(torch.nn.Module):
     SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
         SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
     )).astype("float32")
-    SCREEN_RESOLUTION = (1920, 1080)
+    SCREEN_RES = (1920, 1080)
 
     def __init__(self, frame_size, sprites, vs, xs, rfs=None):
         super().__init__()
@@ -30,7 +30,7 @@ class SpritesVideo(torch.nn.Module):
 
         if rfs is None:
             rfs = (torch.nan, torch.nan, torch.nan, torch.nan, torch.nan)
-        self.register_buffer('rfs', torch.tensor(rfs))
+        self.register_buffer('rfs', rfs.to(dtype=torch.float32))
 
         assert sprites.shape[0] == self.num_sprites
         self.frame_size = frame_size
