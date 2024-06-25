@@ -38,6 +38,8 @@ class SpritesVideo(torch.nn.Module):
         self.register_buffer('sprites',
                              torch.from_numpy(sprites.astype('float32')))
 
+        self.register_buffer('occlusions', torch.zeros(self.timesteps, 3))
+
     @staticmethod
     def degrees_to_coords(x, y):
         return (x / SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
@@ -59,7 +61,7 @@ class SpritesVideo(torch.nn.Module):
     def num_sprites(self):
         return self.xs.shape[0]
 
-    def punch_frame(self, frame, punchout=True):
+    def punch_frame(self, frame, t, punchout=True):
         frame = frame.numpy().transpose(1, 0, 2)
 
         for (x, y, rx, ry, theta) in self.rfs:
@@ -77,14 +79,16 @@ class SpritesVideo(torch.nn.Module):
                 frame = np.where(mask > 0, mask, frame)
             else:
                 frame = np.where(mask > 0, frame, mask + c)
-            return frame.transpose(1, 0, 2)
+        unoccluded = (frame > 1)[:, :, 0].sum() / math.prod(self.sprite_shape)
+        self.occlusions[t, 1 + int(punchout)] = 1. - unoccluded
+        return frame.transpose(1, 0, 2)
 
     def render(self, punchout=None):
         video = []
         for t in range(self.timesteps):
             frame = self.render_frame(t)
             if punchout is not None:
-                frame = self.punch_frame(frame, punchout)
+                frame, _ = self.punch_frame(frame, t, punchout)
             video.append(frame)
         return torch.stack(video, dim=0).clamp(min=0, max=255).to(torch.uint8)
 
@@ -136,7 +140,6 @@ class SpritesVideo(torch.nn.Module):
 
     def write(self, fps, path, punches=True):
         frames = self.render()
-        torch.save(self, path + '.pt')
 
         writer = cv.VideoWriter(path + '.mp4', cv.VideoWriter_fourcc(*"mp4v"),
                                 fps, tuple(self.frame_size), True)
@@ -153,7 +156,7 @@ class SpritesVideo(torch.nn.Module):
             writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
                                     tuple(self.frame_size), True)
             for t in range(frames.shape[0]):
-                frame = self.punch_frame(frames[t], False).transpose(1, 0, 2)
+                frame = self.punch_frame(frames[t], t, False).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
             writer.release()
 
@@ -162,9 +165,11 @@ class SpritesVideo(torch.nn.Module):
             writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
                                     tuple(self.frame_size), True)
             for t in range(frames.shape[0]):
-                frame = self.punch_frame(frames[t], True).transpose(1, 0, 2)
+                frame = self.punch_frame(frames[t], t, True).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
             writer.release()
+
+        torch.save(self, path + '.pt')
 
 class SimSpritesVideo:
     def __init__(self, timesteps, frame_sizes, delta_t, rfs=None):
