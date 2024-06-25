@@ -29,7 +29,8 @@ class SpritesVideo(torch.nn.Module):
         self.register_buffer('vs', vs)
 
         if rfs is None:
-            rfs = (torch.nan, torch.nan, torch.nan, torch.nan, torch.nan)
+            rfs = torch.tensor((torch.nan, torch.nan, torch.nan, torch.nan,
+                                torch.nan))
         self.register_buffer('rfs', rfs.to(dtype=torch.float32))
 
         assert sprites.shape[0] == self.num_sprites
@@ -111,6 +112,14 @@ class SpritesVideo(torch.nn.Module):
 
     @property
     def sprite_shape(self):
+        if not torch.isnan(self.rfs).any():
+            radii = []
+            for (rx, ry) in self.rfs[:, 2:4].unbind(dim=0):
+                rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
+                radii.append(rx)
+                radii.append(ry)
+            sprite_side = int((max(radii) / math.sqrt(2)).round())
+            return torch.Size([sprite_side, sprite_side])
         return self.sprites.shape[1:3]
 
     @property
