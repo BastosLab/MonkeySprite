@@ -144,7 +144,7 @@ class SpritesVideo(torch.nn.Module):
             writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
                                     tuple(self.frame_size), True)
             for t in range(frames.shape[0]):
-                frame = self.punch_frame(frames[t], False).transpose(0, 1, 2)
+                frame = self.punch_frame(frames[t], False).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
             writer.release()
 
@@ -153,7 +153,7 @@ class SpritesVideo(torch.nn.Module):
             writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
                                     tuple(self.frame_size), True)
             for t in range(frames.shape[0]):
-                frame = self.punch_frame(frames[t], True).transpose(0, 1, 2)
+                frame = self.punch_frame(frames[t], True).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
             writer.release()
 
