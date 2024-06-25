@@ -122,7 +122,7 @@ class SpritesVideo(torch.nn.Module):
                 rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
                 radii.append(rx)
                 radii.append(ry)
-            sprite_side = int((max(radii) / math.sqrt(2)).round())
+            sprite_side = int((max(radii) * 1.5 / math.sqrt(2)).round())
             return torch.Size([sprite_side, sprite_side])
         return self.sprites.shape[1:3]
 
@@ -206,7 +206,7 @@ class SimSpritesVideo:
             V0 = torch.Tensor([v_x, v_y])
         else:
             if len(self.rfs) >= 2:
-                a = torch.randint(0, len(self.rfs), size=(1,))
+                a = self.rfs[:, 2:4].argmax() % 2
                 attractor = self.rfs[a, :2].squeeze()
             V0 = normalize(attractor - init_xs, dim=0)
         X = torch.zeros((self.timesteps, 2))
