@@ -59,7 +59,7 @@ class SpritesVideo(torch.nn.Module):
         return self.xs.shape[0]
 
     def punch_frame(self, frame, punchout=True):
-        frame = frame.numpy()
+        frame = frame.numpy().transpose(1, 0, 2)
 
         for (x, y, rx, ry, theta) in self.rfs:
             x, y = SpritesVideo.coords_to_pixels(x, y)
@@ -76,7 +76,7 @@ class SpritesVideo(torch.nn.Module):
                 frame = np.where(mask > 0, mask, frame)
             else:
                 frame = np.where(mask > 0, frame, mask + c)
-            return frame
+            return frame.transpose(1, 0, 2)
 
     def render(self, punchout=None):
         video = []
