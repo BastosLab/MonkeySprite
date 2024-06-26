@@ -10,16 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
 
 class SpritesVideo(torch.nn.Module):
-    DISTANCE_TO_SCREEN = 106
     PUNCH_OUT_COLOR = 1
-    SCREEN_DIMS = (100, 62)
-    SCREEN_HALFWIDTH_DEGREES = np.degrees(np.arctan(
-        SCREEN_DIMS[0] / 2 / DISTANCE_TO_SCREEN
-    )).astype("float32")
-    SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
-        SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
-    )).astype("float32")
-    SCREEN_RES = (1920, 1080)
 
     def __init__(self, frame_size, sprites, vs, xs, rfs=None):
         super().__init__()
@@ -42,20 +33,20 @@ class SpritesVideo(torch.nn.Module):
 
     @staticmethod
     def degrees_to_coords(x, y):
-        return (x / SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
-                y / SpritesVideo.SCREEN_HALFHEIGHT_DEGREES)
+        return (x / SimSpritesVideo.SCREEN_HALFWIDTH_DEGREES,
+                y / SimSpritesVideo.SCREEN_HALFHEIGHT_DEGREES)
 
     @property
     def egocentric(self):
-        dims = torch.tensor([SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
-                             SpritesVideo.SCREEN_HALFHEIGHT_DEGREES])
+        dims = torch.tensor([SimSpritesVideo.SCREEN_HALFWIDTH_DEGREES,
+                             SimSpritesVideo.SCREEN_HALFHEIGHT_DEGREES])
         dims = dims.expand(1, 1, 2)
         return (self.xs * 2 * dims, self.vs * 2 * dims)
 
     @staticmethod
     def coords_to_pixels(x, y):
-        return (x * (SpritesVideo.SCREEN_RES[0] / 2),
-                y * (SpritesVideo.SCREEN_RES[1] / 2))
+        return (x * (SimSpritesVideo.SCREEN_RES[0] / 2),
+                y * (SimSpritesVideo.SCREEN_RES[1] / 2))
 
     @property
     def num_sprites(self):
@@ -67,8 +58,8 @@ class SpritesVideo(torch.nn.Module):
         mask = np.zeros(frame.shape, np.uint8)
         for (x, y, rx, ry, theta) in self.rfs:
             x, y = SpritesVideo.coords_to_pixels(x, y)
-            x = int(torch.round(SpritesVideo.SCREEN_RES[0] / 2 + x))
-            y = int(torch.round(SpritesVideo.SCREEN_RES[1] / 2 - y))
+            x = int(torch.round(SimSpritesVideo.SCREEN_RES[0] / 2 + x))
+            y = int(torch.round(SimSpritesVideo.SCREEN_RES[1] / 2 - y))
             rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
             rx, ry = int(torch.round(rx)), int(torch.round(ry))
             c = SpritesVideo.PUNCH_OUT_COLOR
@@ -173,6 +164,17 @@ class SpritesVideo(torch.nn.Module):
         torch.save(self, path + '.pt')
 
 class SimSpritesVideo:
+    DISTANCE_TO_SCREEN = 106
+    FPS = 60
+    SCREEN_DIMS = (100, 62)
+    SCREEN_HALFWIDTH_DEGREES = np.degrees(np.arctan(
+        SCREEN_DIMS[0] / 2 / DISTANCE_TO_SCREEN
+    )).astype("float32")
+    SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
+        SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
+    )).astype("float32")
+    SCREEN_RES = (1920, 1080)
+
     def __init__(self, timesteps, frame_sizes, delta_t, rfs=None):
         self.rfs = torch.tensor(rfs) if rfs is not None else None
         self.timesteps = timesteps
