@@ -179,7 +179,7 @@ class SimSpritesVideo:
     SCREEN_RES = (1920, 1080)
 
     def __init__(self, timesteps, frame_sizes, delta_t, rfs=None):
-        self.rfs = torch.tensor(rfs) if rfs is not None else None
+        self.rfs = torch.tensor(rfs).to(torch.float32) if rfs is not None else None
         assert len(self.rfs.shape) == 2 and self.rfs.shape[1] == 5
         self.timesteps = timesteps
         self.frame_sizes = torch.tensor(frame_sizes)
