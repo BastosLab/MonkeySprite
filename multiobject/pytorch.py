@@ -64,6 +64,7 @@ class SpritesVideo(torch.nn.Module):
     def punch_frame(self, frame, t, punchout=True):
         frame = frame.numpy().transpose(1, 0, 2)
 
+        mask = np.zeros(frame.shape, np.uint8)
         for (x, y, rx, ry, theta) in self.rfs:
             x, y = SpritesVideo.coords_to_pixels(x, y)
             x = int(torch.round(SpritesVideo.SCREEN_RES[0] / 2 + x))
@@ -72,13 +73,13 @@ class SpritesVideo(torch.nn.Module):
             rx, ry = int(torch.round(rx)), int(torch.round(ry))
             c = SpritesVideo.PUNCH_OUT_COLOR
 
-            mask = np.zeros(frame.shape, np.uint8)
             mask = cv.ellipse(mask, (x, y), (rx, ry), theta.item(), 0, 360,
                               (c, c, c), -1)
-            if punchout:
-                frame = np.where(mask > 0, mask, frame)
-            else:
-                frame = np.where(mask > 0, frame, mask + c)
+
+        if punchout:
+            frame = np.where(mask > 0, mask, frame)
+        else:
+            frame = np.where(mask > 0, frame, mask + c)
         unoccluded = (frame > 1)[:, :, 0].sum() / math.prod(self.sprite_shape)
         self.occlusions[t, 1 + int(punchout)] = 1. - unoccluded
         return frame.transpose(1, 0, 2)
