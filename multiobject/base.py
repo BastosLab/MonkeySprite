@@ -7,7 +7,6 @@ from .pytorch import SimSpritesVideo
 def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
                           timesteps, delta_t, allow_overlap=True, rfs=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
-    bgr = np.zeros(shape, dtype='int')
     color_channels = shape[-1]
     n_sprites = len(sprites)
     print("num sprites: {}".format(n_sprites))
@@ -24,13 +23,13 @@ def iterate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
             video_sprites = [list(sprites_count.keys()).index(k)]
         else:
             video_sprites = list(np.random.randint(0, n_sprites, size=1))
-        video = simulator.sim_video(sprites[video_sprites])
+        x0 = np.random.uniform(-1, 1, size=(len(video_sprites), 2))
+        video = simulator.sim_video(sprites[video_sprites], x0)
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
         yield video, video_sprites, vidlabels
         progress_bar.update()
     progress_bar.close()
-
 
 def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
                            timesteps, delta_t, allow_overlap=True, rfs=None):
