@@ -193,23 +193,23 @@ class SimSpritesVideo:
         return None
 
     @torch.no_grad()
-    def sim_video(self, sprites):
+    def sim_video(self, sprites, x0):
         '''
         Get random trajectories for the digits and generate a video.
         '''
-        xs, vs = self.sim_trajectories(num_tjs=len(sprites))
+        x0 = torch.from_numpy(x0.astype('float32'))
+        xs, vs = self.sim_trajectories(len(sprites), x0)
         return SpritesVideo(torch.Size(self.frame_sizes), sprites, vs, xs,
                             rfs=self.rfs)
 
-    def sim_trajectories(self, num_tjs):
-        Xs = []
-        Vs = []
-        x0 = Uniform(-1, 1).sample((num_tjs, 2))
+    def sim_trajectories(self, num_tjs, x0):
+        xs = []
+        vs = []
         for i in range(num_tjs):
             x, v = self.sim_trajectory(init_xs=x0[i])
-            Xs.append(x.unsqueeze(0))
-            Vs.append(v.unsqueeze(0))
-        return torch.cat(Xs, 0), torch.cat(Vs, 0)
+            xs.append(x)
+            vs.append(v)
+        return torch.stack(xs, dim=0), torch.stack(vs, dim=0)
 
     def sim_trajectory(self, init_xs):
         ''' Generate a random sequence of a sprite '''
