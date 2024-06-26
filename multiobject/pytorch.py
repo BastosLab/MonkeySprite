@@ -130,11 +130,12 @@ class SpritesVideo(torch.nn.Module):
         translation[1] *= -1
         return translation
 
-    def write(self, fps, path, punches=True):
+    def write(self, path, punches=True):
         frames = self.render()
 
         writer = cv.VideoWriter(path + '.mp4', cv.VideoWriter_fourcc(*"mp4v"),
-                                fps, tuple(self.frame_size), True)
+                                SimSpritesVideo.FPS, tuple(self.frame_size),
+                                True)
         for t in range(frames.shape[0]):
             frame = cv.cvtColor(frames[t].transpose(0, 1).numpy(),
                                 cv.COLOR_RGB2BGR)
@@ -145,8 +146,9 @@ class SpritesVideo(torch.nn.Module):
             fname = os.path.basename(path)
             inpath = os.path.dirname(os.path.dirname(path)) + '/punch_in/'
             inpath = inpath + fname + "_in.mp4"
-            writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
-                                    tuple(self.frame_size), True)
+            writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"),
+                                    SimSpritesVideo.FPS, tuple(self.frame_size),
+                                    True)
             for t in range(frames.shape[0]):
                 frame = self.punch_frame(frames[t], t, False).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
@@ -154,8 +156,9 @@ class SpritesVideo(torch.nn.Module):
 
             outpath = os.path.dirname(os.path.dirname(path)) + '/punch_out/'
             outpath = outpath + fname + "_out.mp4"
-            writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
-                                    tuple(self.frame_size), True)
+            writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"),
+                                    SimSpritesVideo.FPS, tuple(self.frame_size),
+                                    True)
             for t in range(frames.shape[0]):
                 frame = self.punch_frame(frames[t], t, True).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
