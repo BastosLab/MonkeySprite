@@ -189,7 +189,7 @@ class SimSpritesVideo:
     @property
     def attractor(self):
         if self.rfs is not None:
-            a = self.rfs[:, 2:4].argmax() % 2
+            a = self.rfs[:, 2:4].argmax() // 2
             return self.rfs[a].squeeze()
         return None
 
