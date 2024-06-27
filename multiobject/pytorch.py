@@ -133,7 +133,8 @@ class SpritesVideo(torch.nn.Module):
     def write(self, path, punches=True):
         frames = self.render()
 
-        writer = cv.VideoWriter(path + '.mp4', cv.VideoWriter_fourcc(*"mp4v"),
+        writer = cv.VideoWriter(path + '_full.mp4',
+                                cv.VideoWriter_fourcc(*"mp4v"),
                                 SimSpritesVideo.FPS, tuple(self.frame_size),
                                 True)
         for t in range(frames.shape[0]):
