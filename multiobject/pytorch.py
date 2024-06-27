@@ -114,7 +114,7 @@ class SpritesVideo(torch.nn.Module):
                 rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
                 radii.append(rx)
                 radii.append(ry)
-            sprite_side = int((max(radii) * 1.5 / math.sqrt(2)).round())
+            sprite_side = int((max(radii) / math.sqrt(2)).round())
             return torch.Size([sprite_side, sprite_side])
         return self.sprites.shape[1:3]
 
