@@ -4,8 +4,8 @@ from tqdm import tqdm
 
 from .pytorch import SimSpritesVideo, SpritesVideo
 
-def iterate_video_dataset(shape, sprites, sprites_attr,
-                          sprites_count, timesteps, delta_t, allow_overlap=True,
+def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
+                          seconds, hold_visdegs=2, allow_overlap=True,
                           rfs=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     color_channels = shape[-1]
@@ -16,18 +16,24 @@ def iterate_video_dataset(shape, sprites, sprites_attr,
     else:
         n_videos = sprites_count
 
-    # Generated videos
-    videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
-
-    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t, rfs=rfs)
-    hypot = np.sqrt((np.array(SpritesVideo.degrees_to_coords(1, 1)) ** 2).sum())
-    distance = simulator.attractor[2:4].max().item() + hypot
+    # Calculate trajectory parameters
+    timesteps = seconds * SimSpritesVideo.FPS
+    unit_diagonal = np.sqrt((np.array(
+        SpritesVideo.degrees_to_coords(np.sqrt(2), np.sqrt(2))
+    ) ** 2).sum())
+    speed = 2 * np.array(rfs)[:, 2:4].max().item() / (2 * SimSpritesVideo.FPS)
+    distance = np.array(rfs)[:, 2:4].max().item()
     theta = np.random.uniform(0, np.pi / 2, size=len(sprites))
     if isinstance(sprites_count, collections.Counter):
         thetas = {k: np.arange(v) * (2 * np.pi / v) + theta[t]
                   for t, (k, v) in enumerate(sprites_count.items())}
     else:
         thetas = theta
+
+    # Generated videos
+    videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
+
+    simulator = SimSpritesVideo(timesteps, shape[:-1], speed, rfs=rfs)
 
     progress_bar = tqdm(total=n_videos)
     for i in range(n_videos):
@@ -41,7 +47,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr,
             angle = thetas[0]
 
         start_dir = np.array(np.cos(angle), np.sin(angle))
-        x0 = simulator.attractor[:2].numpy() - start_dir
+        x0 = simulator.attractor[:2].numpy() + start_dir * distance
         video = simulator.sim_video(sprites[video_sprites], x0)
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
