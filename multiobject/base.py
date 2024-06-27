@@ -17,7 +17,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
         n_videos = sprites_count
 
     # Calculate trajectory parameters
-    timesteps = seconds * SimSpritesVideo.FPS
+    timesteps = int(seconds * SimSpritesVideo.FPS)
     unit_diagonal = np.sqrt((np.array(
         SpritesVideo.degrees_to_coords(np.sqrt(2), np.sqrt(2))
     ) ** 2).sum())
