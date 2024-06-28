@@ -6,8 +6,9 @@ from .pytorch import SimSpritesVideo, SpritesVideo
 
 def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
                           seconds, hold_visdegs=2, allow_overlap=True,
-                          rfs=None):
+                          rf=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
+    assert rf is None or len(rf) == 5
     color_channels = shape[-1]
     n_sprites = len(sprites)
     print("num sprites: {}".format(n_sprites))
@@ -21,7 +22,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
     unit_diagonal = np.sqrt((np.array(
         SpritesVideo.degrees_to_coords(np.sqrt(2), np.sqrt(2))
     ) ** 2).sum())
-    speed = 2 * np.array(rfs)[:, 2:4].max().item() / (2 * SimSpritesVideo.FPS) * (1.5 / 1.15)
+    speed = 2 * np.array(rf)[:, 2:4].max().item() / (2 * SimSpritesVideo.FPS) * (1.5 / 1.15)
     theta = np.random.uniform(0, np.pi / 2, size=len(sprites))
     if isinstance(sprites_count, collections.Counter):
         thetas = {k: np.arange(v) * (2 * np.pi / v) + theta[t]
@@ -32,7 +33,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
 
-    simulator = SimSpritesVideo(timesteps, shape[:-1], speed, rfs=rfs)
+    simulator = SimSpritesVideo(timesteps, shape[:-1], speed, rf=rf)
 
     progress_bar = tqdm(total=n_videos)
     for i in range(n_videos):
@@ -55,7 +56,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
     progress_bar.close()
 
 def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
-                           timesteps, delta_t, allow_overlap=True, rfs=None):
+                           timesteps, delta_t, allow_overlap=True, rf=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     bgr = np.zeros(shape, dtype='int')
     color_channels = shape[-1]
@@ -65,7 +66,7 @@ def generate_video_dataset(n, shape, sprites, sprites_attr, sprites_count,
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
 
-    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t, rfs=rfs)
+    simulator = SimSpritesVideo(timesteps, shape[:-1], delta_t, rf=rf)
     progress_bar = tqdm(total=n)
     for i in range(n):
         if isinstance(sprites_count, collections.Counter):
