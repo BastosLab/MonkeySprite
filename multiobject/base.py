@@ -22,7 +22,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
     unit_diagonal = np.sqrt((np.array(
         SpritesVideo.degrees_to_coords(np.sqrt(2), np.sqrt(2))
     ) ** 2).sum())
-    speed = 2 * np.array(rf)[:, 2:4].max().item() / (2 * SimSpritesVideo.FPS) * (1.5 / 1.15)
+    speed = 2 * np.array(rf)[2:4].max().item() / (2 * SimSpritesVideo.FPS) * (1.5 / 1.15)
     theta = np.random.uniform(0, np.pi / 2, size=len(sprites))
     if isinstance(sprites_count, collections.Counter):
         thetas = {k: np.arange(v) * (2 * np.pi / v) + theta[t]
@@ -47,7 +47,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
             angle = thetas[0]
 
         start_dir = np.array(np.cos(angle), np.sin(angle))
-        x0 = simulator.attractor[:2].numpy() + start_dir
+        x0 = simulator.rf[:2].numpy() + start_dir
         video = simulator.sim_video(sprites[video_sprites], x0)
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
