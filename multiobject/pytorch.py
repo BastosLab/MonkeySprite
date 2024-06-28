@@ -10,16 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data._utils.collate import default_collate
 
 class SpritesVideo(torch.nn.Module):
-    DISTANCE_TO_SCREEN = 106
     PUNCH_OUT_COLOR = 1
-    SCREEN_DIMS = (100, 62)
-    SCREEN_HALFWIDTH_DEGREES = np.degrees(np.arctan(
-        SCREEN_DIMS[0] / 2 / DISTANCE_TO_SCREEN
-    )).astype("float32")
-    SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
-        SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
-    )).astype("float32")
-    SCREEN_RES = (1920, 1080)
 
     def __init__(self, frame_size, sprites, vs, xs, rfs=None):
         super().__init__()
@@ -42,20 +33,20 @@ class SpritesVideo(torch.nn.Module):
 
     @staticmethod
     def degrees_to_coords(x, y):
-        return (x / SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
-                y / SpritesVideo.SCREEN_HALFHEIGHT_DEGREES)
+        return (x / SimSpritesVideo.SCREEN_HALFWIDTH_DEGREES,
+                y / SimSpritesVideo.SCREEN_HALFHEIGHT_DEGREES)
 
     @property
     def egocentric(self):
-        dims = torch.tensor([SpritesVideo.SCREEN_HALFWIDTH_DEGREES,
-                             SpritesVideo.SCREEN_HALFHEIGHT_DEGREES])
+        dims = torch.tensor([SimSpritesVideo.SCREEN_HALFWIDTH_DEGREES,
+                             SimSpritesVideo.SCREEN_HALFHEIGHT_DEGREES])
         dims = dims.expand(1, 1, 2)
         return (self.xs * 2 * dims, self.vs * 2 * dims)
 
     @staticmethod
     def coords_to_pixels(x, y):
-        return (x * (SpritesVideo.SCREEN_RES[0] / 2),
-                y * (SpritesVideo.SCREEN_RES[1] / 2))
+        return (x * (SimSpritesVideo.SCREEN_RES[0] / 2),
+                y * (SimSpritesVideo.SCREEN_RES[1] / 2))
 
     @property
     def num_sprites(self):
@@ -67,8 +58,8 @@ class SpritesVideo(torch.nn.Module):
         mask = np.zeros(frame.shape, np.uint8)
         for (x, y, rx, ry, theta) in self.rfs:
             x, y = SpritesVideo.coords_to_pixels(x, y)
-            x = int(torch.round(SpritesVideo.SCREEN_RES[0] / 2 + x))
-            y = int(torch.round(SpritesVideo.SCREEN_RES[1] / 2 - y))
+            x = int(torch.round(SimSpritesVideo.SCREEN_RES[0] / 2 + x))
+            y = int(torch.round(SimSpritesVideo.SCREEN_RES[1] / 2 - y))
             rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
             rx, ry = int(torch.round(rx)), int(torch.round(ry))
             c = SpritesVideo.PUNCH_OUT_COLOR
@@ -123,7 +114,7 @@ class SpritesVideo(torch.nn.Module):
                 rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
                 radii.append(rx)
                 radii.append(ry)
-            sprite_side = int((max(radii) * 1.5 / math.sqrt(2)).round())
+            sprite_side = int((max(radii) / math.sqrt(2)).round())
             return torch.Size([sprite_side, sprite_side])
         return self.sprites.shape[1:3]
 
@@ -139,11 +130,13 @@ class SpritesVideo(torch.nn.Module):
         translation[1] *= -1
         return translation
 
-    def write(self, fps, path, punches=True):
+    def write(self, path, punches=True):
         frames = self.render()
 
-        writer = cv.VideoWriter(path + '.mp4', cv.VideoWriter_fourcc(*"mp4v"),
-                                fps, tuple(self.frame_size), True)
+        writer = cv.VideoWriter(path + '_full.mp4',
+                                cv.VideoWriter_fourcc(*"mp4v"),
+                                SimSpritesVideo.FPS, tuple(self.frame_size),
+                                True)
         for t in range(frames.shape[0]):
             frame = cv.cvtColor(frames[t].transpose(0, 1).numpy(),
                                 cv.COLOR_RGB2BGR)
@@ -154,8 +147,9 @@ class SpritesVideo(torch.nn.Module):
             fname = os.path.basename(path)
             inpath = os.path.dirname(os.path.dirname(path)) + '/punch_in/'
             inpath = inpath + fname + "_in.mp4"
-            writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
-                                    tuple(self.frame_size), True)
+            writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"),
+                                    SimSpritesVideo.FPS, tuple(self.frame_size),
+                                    True)
             for t in range(frames.shape[0]):
                 frame = self.punch_frame(frames[t], t, False).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
@@ -163,8 +157,9 @@ class SpritesVideo(torch.nn.Module):
 
             outpath = os.path.dirname(os.path.dirname(path)) + '/punch_out/'
             outpath = outpath + fname + "_out.mp4"
-            writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"), fps,
-                                    tuple(self.frame_size), True)
+            writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"),
+                                    SimSpritesVideo.FPS, tuple(self.frame_size),
+                                    True)
             for t in range(frames.shape[0]):
                 frame = self.punch_frame(frames[t], t, True).transpose(1, 0, 2)
                 writer.write(cv.cvtColor(frame, cv.COLOR_RGB2BGR))
@@ -173,43 +168,60 @@ class SpritesVideo(torch.nn.Module):
         torch.save(self, path + '.pt')
 
 class SimSpritesVideo:
+    DISTANCE_TO_SCREEN = 106
+    FPS = 60
+    SCREEN_DIMS = (100, 62)
+    SCREEN_HALFWIDTH_DEGREES = np.degrees(np.arctan(
+        SCREEN_DIMS[0] / 2 / DISTANCE_TO_SCREEN
+    )).astype("float32")
+    SCREEN_HALFHEIGHT_DEGREES = np.degrees(np.arctan(
+        SCREEN_DIMS[1] / 2 / DISTANCE_TO_SCREEN
+    )).astype("float32")
+    SCREEN_RES = (1920, 1080)
+
     def __init__(self, timesteps, frame_sizes, delta_t, rfs=None):
-        self.rfs = torch.tensor(rfs) if rfs is not None else None
+        self.rfs = torch.tensor(rfs).to(torch.float32) if rfs is not None else None
+        assert len(self.rfs.shape) == 2 and self.rfs.shape[1] == 5
         self.timesteps = timesteps
         self.frame_sizes = torch.tensor(frame_sizes)
         self.delta_t = delta_t
 
+    @property
+    def attractor(self):
+        if self.rfs is not None:
+            a = self.rfs[:, 2:4].argmax() // 2
+            return self.rfs[a].squeeze()
+        return None
+
     @torch.no_grad()
-    def sim_video(self, sprites):
+    def sim_video(self, sprites, x0):
         '''
         Get random trajectories for the digits and generate a video.
         '''
-        xs, vs = self.sim_trajectories(num_tjs=len(sprites))
+        x0 = torch.from_numpy(x0.astype('float32'))
+        xs, vs = self.sim_trajectories(len(sprites), x0)
         return SpritesVideo(torch.Size(self.frame_sizes), sprites, vs, xs,
                             rfs=self.rfs)
 
-    def sim_trajectories(self, num_tjs):
-        Xs = []
-        Vs = []
-        x0 = Uniform(-1, 1).sample((num_tjs, 2))
+    def sim_trajectories(self, num_tjs, x0):
+        xs = []
+        vs = []
         for i in range(num_tjs):
             x, v = self.sim_trajectory(init_xs=x0[i])
-            Xs.append(x.unsqueeze(0))
-            Vs.append(v.unsqueeze(0))
-        return torch.cat(Xs, 0), torch.cat(Vs, 0)
+            xs.append(x)
+            vs.append(v)
+        return torch.stack(xs, dim=0), torch.stack(vs, dim=0)
 
     def sim_trajectory(self, init_xs):
         ''' Generate a random sequence of a sprite '''
-        if self.rfs is None:
+        attractor = self.attractor
+        if attractor is None:
             v_norm = Uniform(0, 1).sample() * 2 * math.pi
             v_y = torch.sin(v_norm).item()
             v_x = torch.cos(v_norm).item()
             V0 = torch.Tensor([v_x, v_y])
         else:
-            if len(self.rfs) >= 2:
-                a = self.rfs[:, 2:4].argmax() % 2
-                attractor = self.rfs[a, :2].squeeze()
-            V0 = normalize(attractor - init_xs, dim=0)
+            V0 = normalize(attractor[:2] - init_xs, dim=0)
         X = torch.zeros((self.timesteps, 2))
         V = torch.zeros((self.timesteps, 2))
         X[0] = init_xs
