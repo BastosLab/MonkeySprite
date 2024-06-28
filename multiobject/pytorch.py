@@ -146,6 +146,8 @@ class SpritesVideo(torch.nn.Module):
         if punches:
             fname = os.path.basename(path)
             inpath = os.path.dirname(os.path.dirname(path)) + '/punch_in/'
+            if not os.path.exists(inpath):
+                os.makedirs(inpath)
             inpath = inpath + fname + "_in.mp4"
             writer = cv.VideoWriter(inpath, cv.VideoWriter_fourcc(*"mp4v"),
                                     SimSpritesVideo.FPS, tuple(self.frame_size),
@@ -156,6 +158,8 @@ class SpritesVideo(torch.nn.Module):
             writer.release()
 
             outpath = os.path.dirname(os.path.dirname(path)) + '/punch_out/'
+            if not os.path.exists(outpath):
+                os.makedirs(outpath)
             outpath = outpath + fname + "_out.mp4"
             writer = cv.VideoWriter(outpath, cv.VideoWriter_fourcc(*"mp4v"),
                                     SimSpritesVideo.FPS, tuple(self.frame_size),
