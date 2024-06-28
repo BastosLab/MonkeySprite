@@ -12,17 +12,17 @@ from torch.utils.data._utils.collate import default_collate
 class SpritesVideo(torch.nn.Module):
     PUNCH_OUT_COLOR = 1
 
-    def __init__(self, frame_size, sprites, vs, xs, rfs=None):
+    def __init__(self, frame_size, sprites, vs, xs, rf=None):
         super().__init__()
 
         assert xs.shape[1:] == vs.shape[1:]
         self.register_buffer('xs', xs)
         self.register_buffer('vs', vs)
 
-        if rfs is None:
-            rfs = torch.tensor((torch.nan, torch.nan, torch.nan, torch.nan,
+        if rf is None:
+            rf = torch.tensor((torch.nan, torch.nan, torch.nan, torch.nan,
                                 torch.nan))
-        self.register_buffer('rfs', rfs.to(dtype=torch.float32))
+        self.register_buffer('rf', rf.to(dtype=torch.float32))
 
         assert sprites.shape[0] == self.num_sprites
         self.frame_size = frame_size
@@ -56,16 +56,16 @@ class SpritesVideo(torch.nn.Module):
         frame = frame.numpy().transpose(1, 0, 2)
 
         mask = np.zeros(frame.shape, np.uint8)
-        for (x, y, rx, ry, theta) in self.rfs:
-            x, y = SpritesVideo.coords_to_pixels(x, y)
-            x = int(torch.round(SimSpritesVideo.SCREEN_RES[0] / 2 + x))
-            y = int(torch.round(SimSpritesVideo.SCREEN_RES[1] / 2 - y))
-            rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
-            rx, ry = int(torch.round(rx)), int(torch.round(ry))
-            c = SpritesVideo.PUNCH_OUT_COLOR
+        (x, y, rx, ry, theta) = self.rf
+        x, y = SpritesVideo.coords_to_pixels(x, y)
+        x = int(torch.round(SimSpritesVideo.SCREEN_RES[0] / 2 + x))
+        y = int(torch.round(SimSpritesVideo.SCREEN_RES[1] / 2 - y))
+        rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
+        rx, ry = int(torch.round(rx)), int(torch.round(ry))
+        c = SpritesVideo.PUNCH_OUT_COLOR
 
-            mask = cv.ellipse(mask, (x, y), (rx, ry), theta.item(), 0, 360,
-                              (c, c, c), -1)
+        mask = cv.ellipse(mask, (x, y), (rx, ry), theta.item(), 0, 360,
+                          (c, c, c), -1)
 
         if punchout:
             frame = np.where(mask > 0, mask, frame)
@@ -108,9 +108,9 @@ class SpritesVideo(torch.nn.Module):
 
     @property
     def sprite_shape(self):
-        if not torch.isnan(self.rfs).any():
+        if not torch.isnan(self.rf).any():
             radii = []
-            for (rx, ry) in self.rfs[:, 2:4].unbind(dim=0):
+            for (rx, ry) in self.rf[:, 2:4].unbind(dim=0):
                 rx, ry = SpritesVideo.coords_to_pixels(rx, ry)
                 radii.append(rx)
                 radii.append(ry)
