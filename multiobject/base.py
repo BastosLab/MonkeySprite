@@ -4,9 +4,8 @@ from tqdm import tqdm
 
 from .pytorch import SimSpritesVideo, SpritesVideo
 
-def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
-                          seconds, hold_visdegs=2, allow_overlap=True,
-                          rf=None):
+def iterate_video_dataset(shape, sprites, sprites_attr, parameters,
+                          seconds, allow_overlap=True):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     assert rf is None or len(rf) == 5
     color_channels = shape[-1]
@@ -19,20 +18,9 @@ def iterate_video_dataset(shape, sprites, sprites_attr, sprites_count,
 
     # Calculate trajectory parameters
     timesteps = int(seconds * SimSpritesVideo.FPS)
-    unit_diagonal = np.sqrt((np.array(
-        SpritesVideo.degrees_to_coords(np.sqrt(2), np.sqrt(2))
-    ) ** 2).sum())
-    speed = 2 * np.array(rf)[2:4].max().item() / (2 * SimSpritesVideo.FPS) * (1.5 / 1.15)
-    theta = np.random.uniform(0, np.pi / 2, size=len(sprites))
-    if isinstance(sprites_count, collections.Counter):
-        thetas = {k: np.arange(v) * (2 * np.pi / v) + theta[t]
-                  for t, (k, v) in enumerate(sprites_count.items())}
-    else:
-        thetas = theta
 
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
-
     simulator = SimSpritesVideo(timesteps, shape[:-1], speed, rf=rf)
 
     progress_bar = tqdm(total=n_videos)
