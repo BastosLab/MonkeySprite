@@ -31,7 +31,7 @@ def iterate_video_dataset(shape, sprites, sprites_attr, parameters, seconds,
                                     parameters[k]["sources"][v])
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
-        yield video, video_sprites, vidlabels
+        yield v, (video, video_sprites, vidlabels)
 
         counter[k] += 1
         progress_bar.update()
