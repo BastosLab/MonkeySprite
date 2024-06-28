@@ -179,19 +179,12 @@ class SimSpritesVideo:
     )).astype("float32")
     SCREEN_RES = (1920, 1080)
 
-    def __init__(self, timesteps, frame_sizes, delta_t, rfs=None):
-        self.rfs = torch.tensor(rfs).to(torch.float32) if rfs is not None else None
-        assert len(self.rfs.shape) == 2 and self.rfs.shape[1] == 5
+    def __init__(self, timesteps, frame_sizes, delta_t, rf=None):
+        self.rf = torch.tensor(rf).to(torch.float32) if rf is not None else None
+        assert self.rf is None or self.rf.shape == (5,)
         self.timesteps = timesteps
         self.frame_sizes = torch.tensor(frame_sizes)
         self.delta_t = delta_t
-
-    @property
-    def attractor(self):
-        if self.rfs is not None:
-            a = self.rfs[:, 2:4].argmax() // 2
-            return self.rfs[a].squeeze()
-        return None
 
     @torch.no_grad()
     def sim_video(self, sprites, x0):
@@ -201,7 +194,7 @@ class SimSpritesVideo:
         x0 = torch.from_numpy(x0.astype('float32'))
         xs, vs = self.sim_trajectories(len(sprites), x0)
         return SpritesVideo(torch.Size(self.frame_sizes), sprites, vs, xs,
-                            rfs=self.rfs)
+                            rf=self.rf)
 
     def sim_trajectories(self, num_tjs, x0):
         xs = []
@@ -214,7 +207,7 @@ class SimSpritesVideo:
 
     def sim_trajectory(self, init_xs):
         ''' Generate a random sequence of a sprite '''
-        attractor = self.attractor
+        attractor = self.rf
         if attractor is None:
             v_norm = Uniform(0, 1).sample() * 2 * math.pi
             v_y = torch.sin(v_norm).item()
