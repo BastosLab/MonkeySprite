@@ -4,20 +4,17 @@ from tqdm import tqdm
 
 from .pytorch import SimSpritesVideo, SpritesVideo
 
-def iterate_video_dataset(shape, sprites, sprites_attr, parameters,
-                          seconds, allow_overlap=True):
+def iterate_video_dataset(shape, sprites, sprites_attr, parameters, seconds,
+                          allow_overlap=True, rf=None):
     assert len(shape) == 3, "the image shape should be (height, width, channels)"
     assert rf is None or len(rf) == 5
     color_channels = shape[-1]
     n_sprites = len(sprites)
     print("num sprites: {}".format(n_sprites))
-    if isinstance(sprites_count, collections.Counter):
-        n_videos = sum(sprites_count.values())
-    else:
-        n_videos = sprites_count
-
-    # Calculate trajectory parameters
+    n_videos = sum(params["n"] for params in parameters.values())
+    counter = collections.Counter({k: 0 for k in parameters.keys()})
     timesteps = int(seconds * SimSpritesVideo.FPS)
+    speed = max(rf[2:4]) / (1.5 * SimSpritesVideo.FPS)
 
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
@@ -25,21 +22,18 @@ def iterate_video_dataset(shape, sprites, sprites_attr, parameters,
 
     progress_bar = tqdm(total=n_videos)
     for i in range(n_videos):
-        if isinstance(sprites_count, collections.Counter):
-            k, _ = sprites_count.most_common(1)[0]
-            sprites_count[k] -= 1
-            video_sprites = [list(sprites_count.keys()).index(k)]
-            angle = thetas[k][len(thetas[k]) - (sprites_count[k] + 1)]
-        else:
-            video_sprites = list(np.random.randint(0, n_sprites, size=1))
-            angle = thetas[0]
+        k = np.argmin(list(counter.values()))
+        video_sprites = [k]
+        k = list(parameters.keys())[k]
+        v = counter[k]
 
-        start_dir = np.array(np.cos(angle), np.sin(angle))
-        x0 = simulator.rf[:2].numpy() + start_dir
-        video = simulator.sim_video(sprites[video_sprites], x0)
+        video = simulator.sim_video(sprites[video_sprites],
+                                    parameters[k]["sources"][v])
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
         yield video, video_sprites, vidlabels
+
+        counter[k] += 1
         progress_bar.update()
     progress_bar.close()
 
