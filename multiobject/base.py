@@ -27,8 +27,8 @@ def iterate_video_dataset(shape, sprites, sprites_attr, parameters, seconds,
         k = list(parameters.keys())[k]
         v = counter[k]
 
-        video = simulator.sim_video(sprites[video_sprites],
-                                    parameters[k]["sources"][v])
+        source = np.expand_dims(parameters[k]["sources"][v], 0)
+        video = simulator.sim_video(sprites[video_sprites], source)
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
         yield v, (video, video_sprites, vidlabels)
