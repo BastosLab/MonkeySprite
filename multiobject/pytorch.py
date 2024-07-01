@@ -183,48 +183,40 @@ class SimSpritesVideo:
     )).astype("float32")
     SCREEN_RES = (1920, 1080)
 
-    def __init__(self, timesteps, frame_sizes, delta_t, rf=None):
+    def __init__(self, timesteps, frame_sizes, rf=None):
         self.rf = torch.tensor(rf).to(torch.float32) if rf is not None else None
         assert self.rf is None or self.rf.shape == (5,)
         self.timesteps = timesteps
         self.frame_sizes = torch.tensor(frame_sizes)
-        self.delta_t = delta_t
 
     @torch.no_grad()
-    def sim_video(self, sprites, x0):
+    def sim_video(self, sprites, x0, v0):
         '''
         Get random trajectories for the digits and generate a video.
         '''
         x0 = torch.from_numpy(x0.astype('float32'))
-        xs, vs = self.sim_trajectories(len(sprites), x0)
+        v0 = torch.from_numpy(v0.astype('float32'))
+        xs, vs = self.sim_trajectories(len(sprites), x0, v0)
         return SpritesVideo(torch.Size(self.frame_sizes), sprites, vs, xs,
                             rf=self.rf)
 
-    def sim_trajectories(self, num_tjs, x0):
+    def sim_trajectories(self, num_tjs, x0, v0):
         xs = []
         vs = []
         for i in range(num_tjs):
-            x, v = self.sim_trajectory(init_xs=x0[i])
+            x, v = self.sim_trajectory(x0[i], v0[i])
             xs.append(x)
             vs.append(v)
         return torch.stack(xs, dim=0), torch.stack(vs, dim=0)
 
-    def sim_trajectory(self, init_xs):
+    def sim_trajectory(self, init_xs, init_vs):
         ''' Generate a random sequence of a sprite '''
-        attractor = self.rf
-        if attractor is None:
-            v_norm = Uniform(0, 1).sample() * 2 * math.pi
-            v_y = torch.sin(v_norm).item()
-            v_x = torch.cos(v_norm).item()
-            V0 = torch.Tensor([v_x, v_y])
-        else:
-            V0 = normalize(attractor[:2] - init_xs, dim=0)
         X = torch.zeros((self.timesteps, 2))
         V = torch.zeros((self.timesteps, 2))
         X[0] = init_xs
-        V[0] = V0
+        V[0] = init_vs
         for t in range(0, self.timesteps -1):
-            X_new = X[t] + V[t] * self.delta_t
+            X_new = X[t] + V[t] / SimSpritesVideo.FPS
             V_new = V[t]
 
             if X_new[0] < -1.0:
