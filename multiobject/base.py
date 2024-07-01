@@ -14,11 +14,10 @@ def iterate_video_dataset(shape, sprites, sprites_attr, parameters, seconds,
     n_videos = sum(params["n"] for params in parameters.values())
     counter = collections.Counter({k: 0 for k in parameters.keys()})
     timesteps = int(seconds * SimSpritesVideo.FPS)
-    speed = max(rf[2:4]) / (1.5 * SimSpritesVideo.FPS)
 
     # Generated videos
     videos, labels, sprite_types = [], {k: [] for k in sprites_attr}, []
-    simulator = SimSpritesVideo(timesteps, shape[:-1], speed, rf=rf)
+    simulator = SimSpritesVideo(timesteps, shape[:-1], rf=rf)
 
     progress_bar = tqdm(total=n_videos)
     for i in range(n_videos):
@@ -28,7 +27,8 @@ def iterate_video_dataset(shape, sprites, sprites_attr, parameters, seconds,
         v = counter[k]
 
         source = np.expand_dims(parameters[k]["sources"][v], 0)
-        video = simulator.sim_video(sprites[video_sprites], source)
+        velocity = np.expand_dims(parameters[k]["velocities"][v], 0)
+        video = simulator.sim_video(sprites[video_sprites], source, velocity)
         vidlabels = {k: sprites_attr[k][np.array(*video_sprites, dtype='uint32')]
                      for k in sprites_attr}
         yield v, (video, video_sprites, vidlabels)
